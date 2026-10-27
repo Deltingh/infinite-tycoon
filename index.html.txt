@@ -1,0 +1,437 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infinite Tycoon</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #101522;
+  color: #f4f6ff;
+  font-family: Arial, sans-serif;
+}
+
+header {
+  text-align: center;
+  padding: 28px 15px;
+  background: linear-gradient(135deg, #182747, #263b64);
+  border-bottom: 1px solid #394866;
+}
+
+header h1 {
+  margin: 0 0 8px;
+  color: #ffd166;
+  font-size: 32px;
+}
+
+header p { color: #b8c5dd; margin: 0; }
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+  padding: 22px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 25px;
+}
+
+.stat, .business, .upgrade {
+  background: #1b2233;
+  border: 1px solid #303a50;
+  border-radius: 14px;
+  padding: 18px;
+}
+
+.stat span {
+  color: #a9b5cb;
+  font-size: 13px;
+}
+
+.stat h2 {
+  color: #73e6a0;
+  margin: 10px 0 0;
+  font-size: clamp(18px, 3vw, 26px);
+  overflow-wrap: anywhere;
+}
+
+h3 { margin-top: 0; }
+
+.businesses {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.business .icon { font-size: 34px; }
+
+.business h3 { margin: 10px 0; }
+
+.business p, .upgrade p {
+  color: #b4bfd2;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+button {
+  width: 100%;
+  padding: 12px;
+  background: #ffd166;
+  color: #172033;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 14px;
+  margin-top: 8px;
+}
+
+button:hover { filter: brightness(1.08); }
+button:disabled { opacity: .4; cursor: not-allowed; }
+
+.secondary {
+  background: #303c54;
+  color: white;
+}
+
+.progress {
+  height: 8px;
+  background: #30394c;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+#progressBar {
+  height: 100%;
+  width: 0%;
+  background: #73e6a0;
+  transition: width .2s;
+}
+
+footer {
+  color: #8290a8;
+  text-align: center;
+  padding: 25px;
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .stats { grid-template-columns: 1fr; }
+  .businesses { grid-template-columns: 1fr; }
+  .container { padding: 14px; }
+}
+</style>
+</head>
+
+<body>
+<header>
+  <h1>💰 Infinite Tycoon</h1>
+  <p>Start small. Build big. Become a billionaire.</p>
+</header>
+
+<main class="container">
+  <section class="stats">
+    <div class="stat">
+      <span>YOUR MONEY</span>
+      <h2 id="money">$10</h2>
+    </div>
+    <div class="stat">
+      <span>INCOME PER SECOND</span>
+      <h2 id="income">$0</h2>
+    </div>
+    <div class="stat">
+      <span>TOTAL EARNED</span>
+      <h2 id="earned">$0</h2>
+    </div>
+  </section>
+
+  <section class="upgrade">
+    <h3>📈 Profit Upgrade</h3>
+    <p id="upgradeInfo">Double the income from all your businesses.</p>
+    <button id="upgradeBtn" onclick="buyUpgrade()">
+      Buy upgrade
+    </button>
+  </section>
+
+  <h2>🏢 Your Businesses</h2>
+  <p style="color:#a9b5cb">Buy businesses to earn money automatically!</p>
+
+  <section class="businesses" id="businesses"></section>
+
+  <section class="upgrade" style="margin-top:22px">
+    <h3>🏆 Empire Progress</h3>
+    <p id="progressText">Earn money to build your empire.</p>
+    <div class="progress">
+      <div id="progressBar"></div>
+    </div>
+  </section>
+
+  <button class="secondary" onclick="saveGame(true)">
+    💾 Save Game
+  </button>
+  <button class="secondary" onclick="resetGame()">
+    🔄 Reset Game
+  </button>
+</main>
+
+<footer>
+  Infinite Tycoon · Your empire is waiting.
+</footer>
+
+<script>
+const businesses = [
+  { name: "Lemonade Stand", icon: "🍋",
+    description: "Your first small business.",
+    baseCost: 10, baseIncome: 1 },
+
+  { name: "Food Truck", icon: "🚚",
+    description: "Serve customers on the go.",
+    baseCost: 100, baseIncome: 5 },
+
+  { name: "Restaurant", icon: "🍔",
+    description: "Turn your food business into a hit.",
+    baseCost: 1000, baseIncome: 35 },
+
+  { name: "Factory", icon: "🏭",
+    description: "Mass-produce valuable products.",
+    baseCost: 10000, baseIncome: 200 },
+
+  { name: "Bank", icon: "🏦",
+    description: "Make money move for you.",
+    baseCost: 100000, baseIncome: 1200 },
+
+  { name: "Skyscraper", icon: "🏙️",
+    description: "Own a piece of the city.",
+    baseCost: 1000000, baseIncome: 8000 },
+
+  { name: "Tech Company", icon: "💻",
+    description: "Build the next big invention.",
+    baseCost: 10000000, baseIncome: 50000 },
+
+  { name: "Space Company", icon: "🚀",
+    description: "Take your empire beyond Earth.",
+    baseCost: 100000000, baseIncome: 350000 }
+];
+
+const startingState = () => ({
+  money: 10,
+  earned: 0,
+  multiplier: 1,
+  upgradeLevel: 0,
+  owned: businesses.map(() => 0)
+});
+
+let state = startingState();
+
+function cost(index) {
+  return Math.floor(
+    businesses[index].baseCost *
+    Math.pow(1.15, state.owned[index])
+  );
+}
+
+function incomePerSecond() {
+  return businesses.reduce((total, business, index) => {
+    return total +
+      business.baseIncome *
+      state.owned[index] *
+      state.multiplier;
+  }, 0);
+}
+
+function format(number) {
+  if (number >= 1e12)
+    return "$" + (number / 1e12).toFixed(2) + "T";
+  if (number >= 1e9)
+    return "$" + (number / 1e9).toFixed(2) + "B";
+  if (number >= 1e6)
+    return "$" + (number / 1e6).toFixed(2) + "M";
+  if (number >= 1e3)
+    return "$" + number.toLocaleString("en-US",
+      { maximumFractionDigits: 0 });
+  return "$" + number.toFixed(0);
+}
+
+function renderBusinesses() {
+  const container = document.getElementById("businesses");
+
+  container.innerHTML = businesses.map((business, index) => {
+    const price = cost(index);
+    const owned = state.owned[index];
+    const locked = index > 0 && state.owned[index - 1] === 0;
+    const canBuy = !locked && state.money >= price;
+
+    return `
+      <article class="business">
+        <div class="icon">${business.icon}</div>
+        <h3>${business.name}</h3>
+        <p>${business.description}</p>
+        <p>Owned: <strong>${owned}</strong></p>
+        <p>Income: ${format(
+          business.baseIncome * state.multiplier
+        )}/sec each</p>
+        <button
+          onclick="buyBusiness(${index})"
+          ${canBuy ? "" : "disabled"}>
+          ${locked ? "Unlock previous business first"
+            : "Buy for " + format(price)}
+        </button>
+      </article>
+    `;
+  }).join("");
+}
+
+function render() {
+  document.getElementById("money").textContent =
+    format(state.money);
+
+  document.getElementById("income").textContent =
+    format(incomePerSecond());
+
+  document.getElementById("earned").textContent =
+    format(state.earned);
+
+  const upgradeCost = Math.floor(
+    100 * Math.pow(2, state.upgradeLevel)
+  );
+
+  document.getElementById("upgradeInfo").textContent =
+    `Level ${state.upgradeLevel} · ` +
+    `Income multiplier x${state.multiplier} · ` +
+    `Next upgrade costs ${format(upgradeCost)}.`;
+
+  const upgradeBtn = document.getElementById("upgradeBtn");
+  upgradeBtn.textContent =
+    "Upgrade profits · " + format(upgradeCost);
+  upgradeBtn.disabled = state.money < upgradeCost;
+
+  const nextGoal = Math.max(100, state.earned * 1.5);
+  const progress = Math.min(100,
+    state.earned / nextGoal * 100);
+
+  document.getElementById("progressText").textContent =
+    "Total earned: " + format(state.earned) +
+    " · Next milestone: " + format(nextGoal);
+
+  document.getElementById("progressBar").style.width =
+    progress + "%";
+
+  renderBusinesses();
+}
+
+function buyBusiness(index) {
+  const price = cost(index);
+
+  if (index > 0 && state.owned[index - 1] === 0) return;
+  if (state.money < price) return;
+
+  state.money -= price;
+  state.owned[index]++;
+
+  render();
+  saveGame(false);
+}
+
+function buyUpgrade() {
+  const price = Math.floor(
+    100 * Math.pow(2, state.upgradeLevel)
+  );
+
+  if (state.money < price) return;
+
+  state.money -= price;
+  state.upgradeLevel++;
+  state.multiplier *= 2;
+
+  render();
+  saveGame(false);
+}
+
+function saveGame(showMessage) {
+  try {
+    localStorage.setItem("infiniteTycoonSave",
+      JSON.stringify(state));
+
+    if (showMessage) {
+      alert("Game saved successfully!");
+    }
+  } catch (error) {
+    if (showMessage) {
+      alert("Could not save. Check your browser settings.");
+    }
+  }
+}
+
+function loadGame() {
+  try {
+    const saved = localStorage.getItem("infiniteTycoonSave");
+    if (!saved) return;
+
+    const parsed = JSON.parse(saved);
+
+    if (
+      typeof parsed.money !== "number" ||
+      !Number.isFinite(parsed.money) ||
+      parsed.money < 0 ||
+      !Array.isArray(parsed.owned) ||
+      parsed.owned.length !== businesses.length ||
+      !parsed.owned.every(n =>
+        Number.isInteger(n) && n >= 0) ||
+      !Number.isFinite(parsed.earned) ||
+      parsed.earned < 0 ||
+      !Number.isInteger(parsed.upgradeLevel) ||
+      parsed.upgradeLevel < 0 ||
+      parsed.upgradeLevel > 50
+    ) return;
+
+    state = {
+      ...startingState(),
+      money: parsed.money,
+      earned: parsed.earned,
+      upgradeLevel: parsed.upgradeLevel,
+      multiplier: Math.pow(2, parsed.upgradeLevel),
+      owned: parsed.owned
+    };
+  } catch (error) {
+    console.warn("Save data could not be loaded.");
+  }
+}
+
+function resetGame() {
+  if (!confirm("Reset your empire? This deletes your saved progress.")) {
+    return;
+  }
+
+  state = startingState();
+  render();
+  saveGame(false);
+}
+
+loadGame();
+render();
+
+// Businesses generate money automatically.
+setInterval(() => {
+  const income = incomePerSecond();
+
+  if (income > 0) {
+    state.money += income;
+    state.earned += income;
+    render();
+  }
+}, 1000);
+
+// Save progress periodically.
+setInterval(() => saveGame(false), 5000);
+
+</script>
+</body>
+</html>
